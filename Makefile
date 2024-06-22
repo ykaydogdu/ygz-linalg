@@ -7,7 +7,7 @@ SRCS = $(wildcard $(SRCDIR)/*.cpp)
 OBJS = $(SRCS:$(SRCDIR)/%.cpp=$(OBJDIR)/%.o)
 
 # link object files
-linalg.a: $(OBJS)
+liblinalg.a: $(OBJS)
 	ar rcs $@ $^
 
 # compile the source files into object files
