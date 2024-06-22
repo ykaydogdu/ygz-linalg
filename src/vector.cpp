@@ -3,6 +3,13 @@
 #include <math.h>
 #include <stdexcept>
 
+// default constructor
+Vector::Vector()
+{
+    n = 0;
+    val = nullptr;
+}
+
 // initialize a column vector with given dimensions
 Vector::Vector(int n)
 {

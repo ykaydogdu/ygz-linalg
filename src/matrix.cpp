@@ -1,6 +1,14 @@
 #include "matrix.h"
 #include <stdexcept>
 
+// default constructor
+Matrix::Matrix()
+{
+    r = 0;
+    c = 0;
+    val = nullptr;
+}
+
 // initialize a matrix with given dimensions
 Matrix::Matrix(int r, int c)
 {

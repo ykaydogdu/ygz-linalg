@@ -6,6 +6,7 @@
 
 class Vector {
 public:
+    Vector();
     Vector(int n);
     Vector(double* val);
     ~Vector();

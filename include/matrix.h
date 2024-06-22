@@ -5,6 +5,7 @@ class Vector;
 
 class Matrix {
 public:
+    Matrix();
     Matrix(int r, int c);
     Matrix(double** val);
     static Matrix random(int r, int c);
