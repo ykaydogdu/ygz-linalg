@@ -15,8 +15,9 @@ libygzlinalg.a: $(OBJS)
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
 	$(CC) $(CFLAGS) -I $(INCDIR) -c $< -o $@
 
-test: libygzlinalg.a main.o
-	$(CC) $(CFLAGS) -I $(INCDIR) -L . -o $(TESTDIR)/test $(TESTDIR)/test.cpp -lygzlinalg
+test: libygzlinalg.a test.o
+	$(CC) $(CFLAGS) -I $(INCDIR) -L. -o $(TESTDIR)/test $(TESTDIR)/test.o -lygzlinalg
+	$(TESTDIR)/test
 
-main.o:
-	$(CC) $(CFLAGS) -I $(INCDIR) -c $(TESTDIR)/main.cpp -o $(TESTDIR)/main.o
+test.o:
+	$(CC) $(CFLAGS) -I $(INCDIR) -c $(TESTDIR)/test.cpp -o $(TESTDIR)/test.o

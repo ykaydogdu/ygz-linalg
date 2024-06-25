@@ -5,6 +5,8 @@
 #include <vector>
 using std::vector;
 
+#define TOLERANCE 1e-5
+
 template <class T>
 class ygzMatrix
 {
@@ -34,7 +36,8 @@ public:
 
     // Equality
     bool operator==(const ygzMatrix<T> &rhs) const;
-    bool compare(const ygzMatrix<T> & m2, double tolerance) const;
+    bool operator!=(const ygzMatrix<T> &rhs) const;
+    bool compare(const ygzMatrix<T> & m2, double tolerance = TOLERANCE) const;
 
     // Arithmetic operations
     template <class U> friend ygzMatrix<U> operator+(const ygzMatrix<U> &lhs, const ygzMatrix<U> &rhs);
@@ -56,7 +59,7 @@ public:
 private:
     int sub2Ind(int r, int c) const;
     bool isSquare() const;
-    bool closeEnough(T a, T b, double tolerance) const;
+    bool closeEnough(T a, T b, double tolerance = TOLERANCE) const;
     void swapRow(int i, int j);
     void multRow(int i, T factor);
     void multAddRow(int i, int j, T factor);

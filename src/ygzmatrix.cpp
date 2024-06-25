@@ -1,5 +1,22 @@
-#include "linalg.h"
+#include "ygzlinalg.hpp"
 #include <stdexcept>
+#include <time.h>
+#include <cmath>
+
+#include <iostream>
+template <class T>
+void printMatrix(ygzMatrix<T> &m)
+{
+    for (int i = 0; i < m.getNumRows(); i++)
+    {
+        for (int j = 0; j < m.getNumCols(); j++)
+        {
+            std::cout << m.getElement(i, j) << " ";
+        }
+        std::cout << std::endl;
+    }
+    std::cout << std::endl;
+}
 
 /* ********************************************************************************************* */
 /* 					    		Constructors & Destructor 										 */
@@ -132,9 +149,9 @@ void ygzMatrix<T>::setToIdentity()
     if (!isSquare())
         throw std::invalid_argument("Matrix must be square to set to identity");
 
-    for (int row = 0; row < nRows; i++)
+    for (int row = 0; row < nRows; row++)
     {
-        for (int col = 0; col < nCols; j++)
+        for (int col = 0; col < nCols; col++)
         {
             setElement(row, col, row == col ? 1.0 : 0.0);
         }
@@ -204,11 +221,18 @@ bool ygzMatrix<T>::operator==(const ygzMatrix<T> &rhs) const
     for (int i = 0; i < nElements; i++)
     {
         // if (data[i] != rhs.data[i])
-        if (!closeEnough(data[i], rhs.data[i], 1e-6))
+        if (!closeEnough(data[i], rhs.data[i]))
             return false;
     }
 
     return true;
+}
+
+// Check if two matrices are not equal
+template <class T>
+bool ygzMatrix<T>::operator!=(const ygzMatrix<T> &rhs) const
+{
+    return !(*this == rhs);
 }
 
 // Compare two matrices with tolerance using MSE
@@ -239,7 +263,7 @@ ygzMatrix<T> operator+(const ygzMatrix<T> &lhs, const ygzMatrix<T> &rhs)
 
     T* result = new T[lhs.nElements];
     for (int i = 0; i < lhs.nElements; i++)
-        T[i] = lhs.data[i] + rhs.data[i];
+        result[i] = lhs.data[i] + rhs.data[i];
 
     ygzMatrix<T> resultMatrix(lhs.nRows, lhs.nCols, result);
     delete[] result;
@@ -367,7 +391,7 @@ bool ygzMatrix<T>::isSquare() const
 template <class T>
 bool ygzMatrix<T>::closeEnough(T a, T b, double tolerance) const
 {
-    return abs(a - b) < tolerance;
+    return fabs(a - b) < tolerance;
 }
 
 /* ********************************************************************************************* */
@@ -392,7 +416,7 @@ ygzMatrix<T> ygzMatrix<T>::join(const ygzMatrix<T> &m)
                 newData[index] = m.getElement(i, j - nCols);
         }
     }
-    ygzMatrix<T> result(nRows, nColsNew, newData);
+    ygzMatrix<T> result(nRows, (nCols + m.nCols), newData);
     delete[] newData;
     return result;
 }
@@ -455,9 +479,9 @@ void ygzMatrix<T>::multAddRow(int i, int j, T factor)
 template <class T>
 int ygzMatrix<T>::findRowWithMax(int col, int startingRow) const
 {
-    T max = 0;
-    int rowIndex = -1;
-    for (int i = startingRow; i < nRows; i++)
+    T max = getElement(startingRow, col);
+    int rowIndex = startingRow;
+    for (int i = startingRow + 1; i < nRows; i++)
     {
         T val = getElement(i, col);
         if (val > max)
@@ -484,48 +508,66 @@ bool ygzMatrix<T>::inverseInPlace()
     ygzMatrix<T> augmentedMatrix = join(identityMatrix); // Augment the matrix with the identity matrix
 
     // Perform Gauss-Jordan elimination
-    int diagIndex = 0;
-    ygzMatrix<T> lhs = ygzMatrix<T>(this);
-    while (lhs != identityMatrix)
+    ygzMatrix<T>* lhs = new ygzMatrix<T>(*this);
+    ygzMatrix<T>* res = new ygzMatrix<T>(nRows, nCols);
+
+    int cRow, cCol;
+    int maxCount = 100;
+    int count = 0;
+    bool complete = false;
+    while ((!complete) && (count < maxCount))
     {
-        while (diagIndex < nRows)
+        for (int diagIndex = 0; diagIndex < nRows; diagIndex++)
         {
-            int cRow = diagIndex;
-            int cCol = diagIndex;
-            int maxRow = findRowWithMax(cCol, cRow);
+            cRow = diagIndex;
+            cCol = diagIndex;
+            int maxRow = augmentedMatrix.findRowWithMax(cCol, cRow); // Find row with max element in the cCol th column
             if (maxRow == -1)
-                return false;
+                return false; // something went wrong
             augmentedMatrix.swapRow(cRow, maxRow); // Swap the row with the maximum value to the current row
             if (augmentedMatrix.getElement(cRow, cCol) != 1)
                 augmentedMatrix.multRow(cRow, 1 / augmentedMatrix.getElement(cRow, cCol)); // Divide the row by the diagonal element to make it 1
-            // Processing rows and columns
+
+            // Now process the rows and columns
             for (int r = cRow + 1; r < nRows; r++)
             {
-                if (closeEnough(augmentedMatrix.getElement(r, cCol), 0, 1e-6))
+                T currentElement = augmentedMatrix.getElement(r, cCol);
+                T diagElement = augmentedMatrix.getElement(cRow, cCol);
+                if (closeEnough(currentElement, 0.0) || closeEnough(diagElement, 0.0))
                     continue;
-                T factor = -augmentedMatrix.getElement(r, cCol);
+
+                T factor = -(currentElement / diagElement);
                 augmentedMatrix.multAddRow(cRow, r, factor); // Make the elements below the diagonal element 0
             }
-            // Since we have processed the column, we can safely make the elements above the diagonal 0 in the row cRow
             for (int c = cCol + 1; c < nCols; c++)
             {
-                if (closeEnough(augmentedMatrix.getElement(cRow, c), 0, 1e-6))
+                T currentElement = augmentedMatrix.getElement(cRow, c);
+                T diagElement = augmentedMatrix.getElement(cRow, cCol);
+                if (closeEnough(currentElement, 0.0) || closeEnough(diagElement, 0.0))
                     continue;
-                T factor = -augmentedMatrix.getElement(cRow, c);
-                augmentedMatrix.multAddRow(c, cRow, factor); // Make the elements to the right of the diagonal element 0
-                // by adding row c to row cRow multiplied by the factor (c is the row where the element in the cth column is 1)
+
+                T factor = -(currentElement / diagElement);
+                augmentedMatrix.multAddRow(c, cCol, factor); // Make the elements to the right of the diagonal element 0
             }
-            diagIndex++;        
         }
-        seperate(&lhs, &identityMatrix, nCols); // Separate the augmented matrix into two matrices
-        diagIndex = 0;
+        // Now seperate
+        augmentedMatrix.separate(lhs, res, nCols);
+        if (*lhs == identityMatrix) // we are done
+        {
+            complete = true;
+            // res is now the inverse of the original matrix
+            for (int i = 0; i < nRows; i++)
+            {
+                for (int j = 0; j < nCols; j++)
+                    setElement(i, j, res->getElement(i, j));
+            }
+        }
+        count++;
     }
-    // identityMatrix is now the inverse of the original matrix
-    for (int i = 0; i < nRows; i++)
-    {
-        for (int j = 0; j < nCols; j++)
-            setElement(i, j, identityMatrix.getElement(i, j));
-    }
-    return true;
+    return complete;
 }
 
+template class ygzMatrix<int>;
+template class ygzMatrix<long>;
+template class ygzMatrix<float>;
+template class ygzMatrix<double>;
