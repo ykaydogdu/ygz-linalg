@@ -567,6 +567,103 @@ bool ygzMatrix<T>::inverseInPlace()
     return complete;
 }
 
+// Returns the inverse of the matrix
+template <class T>
+ygzMatrix<T> ygzMatrix<T>::inverse() const
+{
+    ygzMatrix<T> copy(*this);
+    copy.inverseInPlace();
+    return copy;
+}
+
+/* ********************************************************************************************* */
+/* 					    			  Determinant Operations									 */
+/* ********************************************************************************************* */
+// Find the minor with respect to given row and column
+template <class T>
+ygzMatrix<T> ygzMatrix<T>::findMinor(int row, int col) const
+{
+    T* minorData = new T[(nRows - 1) * (nCols - 1)];
+    int minorIndex = 0;
+    for (int i = 0; i < nRows; i++)
+    {
+        if (i == row)
+            continue;
+        for (int j = 0; j < nCols; j++)
+        {
+            if (j == col)
+                continue;
+            minorData[minorIndex++] = getElement(i, j);
+        }
+    }
+    ygzMatrix<T> minorMatrix(nRows - 1, nCols - 1, minorData);
+    delete[] minorData;
+    return minorMatrix;
+}
+
+// Calculate the determinant of the matrix
+template <class T>
+T ygzMatrix<T>::determinant() const
+{
+    if (!isSquare())
+        throw std::invalid_argument("Matrix must be square to calculate the determinant");
+
+    if (nRows == 1)
+        return getElement(0, 0);
+    if (nRows == 2)
+        return getElement(0, 0) * getElement(1, 1) - getElement(0, 1) * getElement(1, 0);
+
+    T det = 0;
+    for (int i = 0; i < nCols; i++)
+    {
+        ygzMatrix<T> minor = findMinor(0, i);
+        det += (i % 2 == 0 ? 1 : -1) * getElement(0, i) * minor.determinant();
+    }
+    return det;
+}
+
+/* ********************************************************************************************* */
+/* 					    			Matrix - Vector Operations									 */
+/* ********************************************************************************************* */
+// Matrix-vector multiplication
+template <class T>
+ygzVector<T> operator*(const ygzMatrix<T> &matrix, const ygzVector<T> &vector)
+{
+    if (matrix.getNumCols() != vector.getNumDims())
+        throw std::invalid_argument("Number of columns in the matrix must be equal to the number of dimensions in the vector");
+
+    T* result = new T[matrix.nRows];
+    for (int i = 0; i < matrix.nRows; i++)
+    {
+        result[i] = 0;
+        for (int j = 0; j < matrix.nCols; j++)
+            result[i] += matrix.getElement(i, j) * vector.getElement(j);
+    }
+
+    ygzVector<T> resultVector(matrix.nRows, result);
+    delete[] result;
+    return resultVector;
+}
+
+// Vector - Row Vector Multiplication
+template <class T>
+ygzMatrix<T> operator*(const ygzVector<T> &vector, const ygzMatrix<T> &r_vector)
+{
+    if (r_vector.getNumRows() != 1)
+        throw std::invalid_argument("The right matrix must be a row vector");
+    
+    T* result = new T[vector.getNumDims() * r_vector.getNumCols()];
+    for (int i = 0; i < vector.getNumDims(); i++)
+    {
+        for (int j = 0; j < r_vector.getNumCols(); j++)
+            result[i * r_vector.getNumCols() + j] = vector.getElement(i) * r_vector.getElement(0, j);
+    }
+
+    ygzMatrix<T> resultMatrix(vector.getNumDims(), r_vector.getNumCols(), result);
+    delete[] result;
+    return resultMatrix;
+}
+
 template class ygzMatrix<int>;
 template class ygzMatrix<long>;
 template class ygzMatrix<float>;
